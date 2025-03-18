@@ -42,6 +42,9 @@ This repository is used to manage and deploy a **Flask application** and **infra
 find . -type f -exec sed -i 's|git@github.com:rafalzmyslony/gitops-repo-for-sample-apps.git|git@github.com:rafalzmyslony/<your gitops repository>.git|g' {} +
 ```
 
+2. **Update all custom values**
+- **S3 bucket name**: update `infra/monitoring/pull-logs-from-s3-and-push-to-loki-deployment.yml` to your S3 bucket name.  
+
 
 ### Deploy Applications to ArgoCD
 1. Clone the repository:
