@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: flask-web-application
+  name: flask-web-application
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-web-application
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: flask-web-application
+      annotations:
+        prometheus.io/scrape: "true"    #  Allow Prometheus to scrape
+        prometheus.io/path: "/metrics"  #  Metrics endpoint
+        prometheus.io/port: "5000"      #  Flask app port
+    spec:
+      containers:
+      - image: 743241827577.dkr.ecr.eu-central-1.amazonaws.com/github-ci/python-flask-app:7197a6a-1741724641
+        name: flask-web-application
+        resources: {}
+      imagePullSecrets:
+        - name: ecr-secret  # 👈 Add this line to use the secret!
+status: {}
+
+

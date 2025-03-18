@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fetch-trivy-logs-script
+  namespace: monitoring
+data:
+  fetch_trivy_logs.py: |
+    import boto3
+    import os
+    import time
+    import logging
+    from datetime import datetime
+
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),  # Output to console
+            logging.FileHandler("/logs/fetch_trivy_logs.log")  # Save logs to file
+        ]
+    )
+
+    AWS_REGION = os.getenv("AWS_REGION", "eu-central-1")
+    S3_BUCKET = os.getenv("S3_BUCKET", "trivy-reports-bucket")
+    LOCAL_DIR = "/logs"
+
+    # Initialize S3 client
+    try:
+        s3 = boto3.client('s3', region_name=AWS_REGION)
+        # Check if S3 bucket is accessible
+        s3.head_bucket(Bucket=S3_BUCKET)
+        logging.info(f"Successfully connected to S3 bucket: {S3_BUCKET}")
+    except Exception as e:
+        logging.error(f"Failed to connect to S3 bucket '{S3_BUCKET}': {e}")
+        exit(1)  # Exit if the script cannot connect to S3
+
+    def fetch_trivy_reports():
+        last_processed = set()
+        
+        while True:
+            try:
+                response = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix='trivy-reports/')
+                if 'Contents' in response:
+                    for obj in response['Contents']:
+                        key = obj['Key']
+                        if key not in last_processed:
+                            filename = os.path.join(LOCAL_DIR, key.split('/')[-1])
+                            s3.download_file(S3_BUCKET, key, filename)
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            logging.info(f"[{timestamp}] Downloaded: {filename}")
+                            last_processed.add(key)
+                else:
+                    logging.info("No new files found in S3.")
+
+            except Exception as e:
+                logging.error(f"Error fetching Trivy reports from S3: {e}")
+
+            time.sleep(60)  # Poll every 60 seconds
+
+    if __name__ == "__main__":
+        fetch_trivy_reports()

@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: flask-project
+  namespace: argocd
+spec:
+  description: Project for monitoring applications (Grafana, Loki, Prometheus)
+  sourceRepos:
+     - git@github.com:rafalzmyslony/gitops-repo-for-sample-apps.git
+  destinations:
+    - namespace: production 
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+

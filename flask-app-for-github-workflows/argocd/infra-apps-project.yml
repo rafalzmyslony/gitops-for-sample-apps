@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infra-apps-project 
+  namespace: argocd
+spec:
+  description: Project for monitoring applications (Grafana, Loki, Prometheus)
+  sourceRepos:
+    - git@github.com:rafalzmyslony/gitops-repo-for-sample-apps.git
+    - https://grafana.github.io/helm-charts 
+    - https://prometheus-community.github.io/helm-charts
+  destinations:
+    - namespace: argocd   #  Now part of a single list
+      server: https://kubernetes.default.svc
+    - namespace: monitoring   #  Now part of a single list
+      server: https://kubernetes.default.svc
+    - namespace: kube-system   #  Now part of a single list
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+

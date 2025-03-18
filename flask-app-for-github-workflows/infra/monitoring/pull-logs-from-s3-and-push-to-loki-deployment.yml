@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy-log-processor
+  namespace: monitoring
+  labels:
+    app: trivy-log-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trivy-log-processor
+  template:
+    metadata:
+      labels:
+        app: trivy-log-processor
+    spec:
+      volumes:
+        - name: shared-logs
+          emptyDir: {}  # Shared volume for logs between fetcher and Promtail
+        - name: scripts
+          emptyDir: {}  # Volume for scripts
+        - name: configmap-scripts
+          configMap:
+            name: fetch-trivy-logs-script  # Contains fetch_trivy_logs.py
+        - name: promtail-config
+          configMap:
+            name: promtail-config  # Promtail configuration
+
+      initContainers:
+        - name: install-scripts
+          image: python:3.9-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - cp /configmap-scripts/fetch_trivy_logs.py /scripts/ && chmod +x /scripts/fetch_trivy_logs.py
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: configmap-scripts
+              mountPath: /configmap-scripts
+              readOnly: true
+
+      containers:
+        - name: s3-fetcher
+          image: python:3.9-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - pip install boto3 && python /scripts/fetch_trivy_logs.py
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-promtail-credentials  # New Secret Name
+                  key: aws-access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-promtail-credentials  # New Secret Name
+                  key: aws-secret-access-key
+            - name: AWS_REGION
+              value: "eu-central-1"
+            - name: S3_BUCKET
+              value: "reports-from-github-action-123"
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /logs  # Logs are written here
+            - name: scripts
+              mountPath: /scripts  # Script runs from here
+
+        - name: promtail
+          image: grafana/promtail:2.9.0
+          args:
+            - "-config.file=/etc/promtail/promtail.yaml"
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /logs  # Reading logs from the shared directory
+            - name: promtail-config
+              mountPath: /etc/promtail  # Configuring Promtail
+

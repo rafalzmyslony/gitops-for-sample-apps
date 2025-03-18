@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+  namespace: argocd
+spec:
+  project: infra-apps-project
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 25.8.0
+    chart: prometheus
+    helm:
+      values: |
+        server:
+          persistentVolume:
+            enabled: true
+            storageClass: "standard"
+            size: 10Gi
+          ingress:
+            enabled: true
+            hosts:
+              - prometheus.example.com
+            annotations:
+              nginx.ingress.kubernetes.io/rewrite-target: /
+        extraScrapeConfigs: |  #  Fix: Use YAML block scalar
+          - job_name: "flask-app"
+            metrics_path: "/metrics"
+            scrape_interval: 30s
+            static_configs:
+              - targets: 
+                  - "flask-web-service.production.svc.cluster.local:80"
+        alertmanager:
+          persistentVolume:
+            enabled: true
+            storageClass: "standard"
+            size: 5Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: true

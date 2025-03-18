@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flask-application
+  namespace: argocd # All applications object should be in argocd namespace
+spec:
+  project: flask-project
+  source:
+    repoURL: git@github.com:rafalzmyslony/gitops-repo-for-sample-apps.git 
+    path: flask-app-for-github-workflows/apps/flask-web-app  # Directory where application definitions live
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+

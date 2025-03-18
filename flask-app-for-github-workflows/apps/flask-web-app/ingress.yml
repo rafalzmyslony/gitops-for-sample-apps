@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flask-app-ingress
+  namespace: production
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /  # Rewrite target for Nginx Ingress
+spec:
+  rules:
+    - host: flask-app.local  # Replace with your desired hostname or domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flask-web-service
+                port:
+                  number: 80

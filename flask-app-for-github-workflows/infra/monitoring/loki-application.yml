@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 6.7.0
+    chart: loki
+    helm:
+      values: |
+        deploymentMode: SingleBinary
+        singleBinary:
+          replicas: 1  # Single pod for Minikube
+          persistence:
+            enabled: true  # Ephemeral storage, no PVC
+            storageClassName: standard  # Change this if needed
+            size: 10Gi      #  Set storage size
+        read:
+          replicas: 0  # Disable scalable read targets
+        write:
+          replicas: 0  # Disable scalable write targets
+        backend:
+          replicas: 0  # Disable scalable backend targets
+        loki:
+          auth_enabled: false  # No auth for Grafana
+          storage:
+            type: filesystem  # Local filesystem storage
+          commonConfig:
+            replication_factor: 1  # Single instance
+          schemaConfig:  # Corrected field name (schemaConfig, not schema_config)
+            configs:
+              - from: "2024-01-01"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  period: 24h
+                  prefix: loki_index_
+        affinity: {}  # Avoid anti-affinity issues on Minikube
+        serviceMonitor:
+          enabled: true  # For Prometheus
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: true
