@@ -29,6 +29,10 @@ This repository is used to manage and deploy a **Flask application** and **infra
 - **Namespaces**: `argocd`, `monitoring`, `kube-system`
 - **Auto-Sync**: Enabled (self-healing & pruning)
 
+![alt text](assets/image-argocd.png)
+
+![alt text](assets/image-grafana-dashboard.png)
+
 ## Deployment Instructions
 ### Prerequisites
 - A **Kubernetes cluster** with **ArgoCD installed**.
